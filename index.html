@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>SVG 미리보기 편집기</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      padding: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.9rem;
+    }
+    .preview {
+      border: 1px solid #ccc;
+      padding: 2rem;
+      min-height: 200px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    img {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>SVG 미리보기 편집기</h1>
+
+  <textarea id="svgInput" placeholder="여기에 SVG 코드를 입력하세요..."></textarea>
+
+  <div class="controls">
+    <label>
+      너비 (px)
+      <input type="number" id="widthInput" value="100">
+    </label>
+
+    <label>
+      높이 (px)
+      <input type="number" id="heightInput" value="100">
+    </label>
+
+    <label>
+      색상
+      <input type="color" id="colorInput" value="#000000">
+    </label>
+  </div>
+
+  <div class="preview" id="preview">
+    <!-- 미리보기 표시 -->
+  </div>
+
+  <script>
+    const svgInput = document.getElementById('svgInput');
+    const widthInput = document.getElementById('widthInput');
+    const heightInput = document.getElementById('heightInput');
+    const colorInput = document.getElementById('colorInput');
+    const preview = document.getElementById('preview');
+
+    function updatePreview() {
+      const svgText = svgInput.value.trim();
+      if (!svgText) {
+        preview.innerHTML = '';
+        return;
+      }
+
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgText, 'image/svg+xml');
+        const svgElement = doc.querySelector('svg');
+
+        if (!svgElement) {
+          preview.innerHTML = '<p style=\"color:red\">잘못된 SVG 코드입니다.</p>';
+          return;
+        }
+
+        svgElement.setAttribute('width', widthInput.value);
+        svgElement.setAttribute('height', heightInput.value);
+
+        const elements = svgElement.querySelectorAll('[fill], [stroke]');
+        elements.forEach(el => {
+          if (el.getAttribute('fill') === 'currentColor') {
+            el.setAttribute('fill', colorInput.value);
+          }
+          if (el.getAttribute('stroke') === 'currentColor') {
+            el.setAttribute('stroke', colorInput.value);
+          }
+        });
+
+        const serializer = new XMLSerializer();
+        const updatedSvg = serializer.serializeToString(svgElement);
+        const blob = new Blob([updatedSvg], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+
+        preview.innerHTML = `<img src=\"${url}\" alt=\"SVG Preview\">`;
+
+      } catch (e) {
+        preview.innerHTML = '<p style=\"color:red\">SVG 파싱에 실패했습니다.</p>';
+      }
+    }
+
+    function loadSvgFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const svgParam = params.get('svg');
+      if (svgParam) {
+        const decodedSvg = decodeURIComponent(svgParam);
+        svgInput.value = decodedSvg;
+        updatePreview();
+      }
+    }
+
+    svgInput.addEventListener('input', updatePreview);
+    widthInput.addEventListener('input', updatePreview);
+    heightInput.addEventListener('input', updatePreview);
+    colorInput.addEventListener('input', updatePreview);
+
+    // 페이지 로드 시 URL 파라미터 처리
+    loadSvgFromUrl();
+  </script>
+
+</body>
+</html>
